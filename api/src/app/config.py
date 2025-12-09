@@ -13,12 +13,12 @@ class BaseConfig:
     # SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:boss123@localhost/postgres'
     
     # Uncomment below line for local development on Docker
-    # SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:boss123@172.17.0.3/postgres'
+    SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:boss123@172.17.0.3/postgres'
 
 
     # SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:123456789@localhost/postgres2'
     # Comment below line for local development on Docker
-    SQLALCHEMY_DATABASE_URI = 'postgresql://biodlab:biodb+6859@localhost/appdb'
+    # SQLALCHEMY_DATABASE_URI = 'postgresql://biodlab:biodb+6859@localhost/appdb'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     JWT_EXPIRATION_DELTA = datetime.timedelta(days=25)
 
@@ -34,7 +34,7 @@ class BaseConfig:
     }
 
     try:
-        SECRET_KEY = open('../../secret.txt').read()
+        SECRET_KEY = open('../secret.txt').read()
     except:
         print('Warning: You need to generate secret.txt file to use api')
 

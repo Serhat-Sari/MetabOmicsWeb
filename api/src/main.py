@@ -16,12 +16,12 @@ from collections import defaultdict
 import pickle
 from sklearn.pipeline import  Pipeline
 from app.app import app
-from app.models import db, Method, User, Disease
+from app.models import db, AnalysisMethod, User, Diseases, DiffusionMethod
 from app.DOParser import DOParser
 
 from sklearn_utils.utils import SkUtilsIO
-from metabolitics3d.preprocessing import *
-from metabolitics3d.utils import load_network_model
+from metabomics.preprocessing import *
+from metabomics.utils import load_network_model
 
 @click.group()
 def cli():
@@ -61,15 +61,16 @@ def migrate():
 
     for lib in do_parser.diseases:
         for temp in do_parser.diseases[lib]:
-            _disease = Disease(name=temp['name'], synonym=temp['synonym'])
+            _disease = Diseases(name=temp['name'], synonym=temp['synonym'])
             db.session.add(_disease)
     db.session.commit()
-    method1 = Method(name = "Metabolitics")
-    method2 = Method(name = "Direct Pathway Mapping")
-    method3 = Method(name = "Pathway Enrichment")
-    disease1 = Disease(name="abc", synonym="x")
-    disease2 = Disease(name="abc", synonym="y")
-    disease3 = Disease(name="abc", synonym="z")
+    method1 = AnalysisMethod(name = "Metabolitics")
+    method2 = AnalysisMethod(name = "Direct Pathway Mapping")
+    method3 = AnalysisMethod(name = "Pathway Enrichment")
+    method4 = DiffusionMethod(name = "Linear Threshold")
+    disease1 = Diseases(name="abc", synonym="x")
+    disease2 = Diseases(name="abc", synonym="y")
+    disease3 = Diseases(name="abc", synonym="z")
     user = User(name="Alper", surname="Dokay", email="alperdokay@sehir.edu.tr", password="test123")
     user2 = User(name="Taj", surname="Saleh", email="tajothman@std.sehir.edu.tr", password="test123")
     user3 = User(name="Demo", surname="User", email="demo", password="demo")
@@ -77,6 +78,7 @@ def migrate():
     db.session.add(method1)
     db.session.add(method2)
     db.session.add(method3)
+    db.session.add(method4)
     db.session.add(disease1)
     db.session.add(disease2)
     db.session.add(disease3)

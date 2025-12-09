@@ -2,7 +2,7 @@ from marshmallow import Schema, fields
 from flask_marshmallow import Marshmallow
 
 from .app import app
-from .models import User, Analysis
+from .models import User, Analyses
 
 ma = Marshmallow(app)
 
@@ -16,6 +16,7 @@ class AnalysisInputSchema(Schema):
     isMapped = fields.Dict(required=False)
     disease = fields.Integer(required=True)
     metabolites = fields.List(required=False, cls_or_instance=fields.String())
+    transcriptomes = fields.List(required=False, cls_or_instance=fields.String())
 
 class AnalysisInputSchema2(Schema):
     study_name = fields.String(required=True)
@@ -53,7 +54,7 @@ class AnalysisSchema(ma.ModelSchema):
     # type = fields.String(required=False)
 
     class Meta:
-        model = Analysis
+        model = Analyses
         exclude = ('user', )
 
 

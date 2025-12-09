@@ -2,7 +2,7 @@ import unittest
 import flask_testing
 
 from .app import app, config
-from .models import Analysis, db
+from .models import Analyses, db
 from .tasks import save_analysis
 
 
@@ -13,13 +13,13 @@ class ApiTests(flask_testing.TestCase):
 class TaskTests(unittest.TestCase):
     @unittest.skip('Require db')
     def test_save_analysis(self):
-        analysis = Analysis('test analysis', None)
+        analysis = Analyses('test analysis', None)
         db.session.add(analysis)
         db.session.commit()
         analysis_id = analysis.id
         save_analysis(analysis.id, {'h_c': 1})
 
-        q_anaylsis = Analysis.query.get(analysis_id)
+        q_anaylsis = Analyses.query.get(analysis_id)
         self.assertTrue(q_anaylsis)
         self.assertTrue(q_anaylsis.results_pathway)
         self.assertTrue(q_anaylsis.results_reaction)
@@ -32,7 +32,7 @@ class ModelsTests(flask_testing.TestCase):
     def setUp(self):
         self.reaction_result = [{'a_dif': 1, 'b_dif': 2}]
         self.pathway_result = [{'sa_dif': 1, 'sb_dif': 2}]
-        self.analysis = Analysis('test analysis', None)
+        self.analysis = Analyses('test analysis', None)
 
     def create_app(self):
         app.config.from_object(config['testing'])
@@ -45,7 +45,7 @@ class ModelsTests(flask_testing.TestCase):
         db.session.add(self.analysis)
         db.session.commit()
 
-        q_anaylsis = Analysis.query.get(self.analysis.id)
+        q_anaylsis = Analyses.query.get(self.analysis.id)
         self.assertTrue(q_anaylsis)
 
         db.session.delete(self.analysis)

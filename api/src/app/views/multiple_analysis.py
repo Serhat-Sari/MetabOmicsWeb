@@ -7,7 +7,7 @@ from ..visualization import HeatmapVisualization
 import time
 from ..app import app
 from ..schemas import *
-from ..models import db, User, Analysis, MetabolomicsData, Method
+from ..models import db, User, Analyses, OmicsDatasets, AnalysisMethod
 from ..tasks import save_analysis
 from ..base import *
 from ..dpm import *
@@ -440,22 +440,3 @@ def average(list_of_dicte):
         final[case[0]] ={"Label":case[0],"Metabolites":result}
 
     return final
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

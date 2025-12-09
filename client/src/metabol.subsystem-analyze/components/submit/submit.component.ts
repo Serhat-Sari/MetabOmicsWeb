@@ -30,7 +30,8 @@ export class SubmitComponent implements OnInit {
   @Input() unmappedTranscriptomics: Array<[string, number, string, string, boolean]> = [];
   @Input() currentOmics: string;
   myControl = new FormControl();
-  analysisTable: Array<[string, number]> = [];
+  metabolitesTable: Array<[string, number]> = [];
+  transcriptomesTable: Array<[string, number]> = [];
   previewTable: Array<[string, string, number]> = [];
   public synonymList: [] = synonyms;
   diseases: Disease[] = [];
@@ -104,7 +105,6 @@ export class SubmitComponent implements OnInit {
   
     analyze() {
       const selectedMethod = this.selectedMethod;
-      const selectedModel = this.selectedModel;
       if(!this.myControl.value){
         alert("Please choose a disease on the top of the page to start analysis.");
         return;
@@ -112,17 +112,16 @@ export class SubmitComponent implements OnInit {
   
       this.mConTable.forEach(metabolite => {
          if (metabolite[4]) {
-           this.analysisTable.push([metabolite[2], metabolite[1]]);
+           this.metabolitesTable.push([metabolite[2], metabolite[1]]);
          }
       });
       if(this.hasTranscriptomicsSelected()){
         this.tConTable.forEach(transcript => {
           if (transcript[4]) {
-            this.analysisTable.push([transcript[2], transcript[1]]);
+            this.transcriptomesTable.push([transcript[2], transcript[1]]);
           }
         });
       }
-      console.log(this.analysisTable);
       let data = {}
       if (localStorage.getItem('isMultiple') == 'True') {
   
@@ -136,7 +135,11 @@ export class SubmitComponent implements OnInit {
           data = {
             "study_name": this.analyzeName.value,
             "public": this.isPublic.value,
-            "analysis": { [name]: { "Metabolites": _.fromPairs(this.analysisTable), "Label": "not_provided" } },
+            "analysis": { 
+              [name]: { 
+              "Metabolites": _.fromPairs(this.metabolitesTable), 
+              "Transcriptomes": _.fromPairs(this.transcriptomesTable),
+              "Label": "not_provided" } },
             "group": "not_provided",
             "disease": this.myControl.value["id"]
           };
@@ -147,7 +150,11 @@ export class SubmitComponent implements OnInit {
           data = {
             "study_name": this.analyzeName.value,
             "public": this.isPublic.value,
-            "analysis": { [name]: { "Metabolites": _.fromPairs(this.analysisTable), "Label": "not_provided" } },
+            "analysis": { 
+              [name]: { 
+              "Metabolites": _.fromPairs(this.metabolitesTable), 
+              "Transcriptomes": _.fromPairs(this.transcriptomesTable),
+              "Label": "not_provided" } },
             "group": "not_provided",
             "disease": this.myControl.value["id"],
             "email": this.analyzeEmail.value
@@ -157,10 +164,6 @@ export class SubmitComponent implements OnInit {
   
       }  // else
       // console.log(data);
-  
-      if(selectedModel === this.diffusionss.LinearThreshold) {
-        this.linearthreshold(data);
-      }
       if (selectedMethod === this.methods.Metabolitics) {
         this.metabolitics(data);
       }
@@ -169,16 +172,6 @@ export class SubmitComponent implements OnInit {
       }
       else if (selectedMethod === this.methods.MetaboliteEnrichment) {
         this.metaboliteEnrichment(data);
-      }
-    }
-
-    linearthreshold(data) {
-
-      if (this.login.isLoggedIn()) {
-        this.http.post(`${AppSettings.API_ENDPOINT}/analysis/linearthreshold`, data, this.login.optionByAuthorization())
-      } // if
-      else {
-        this.http.post(`${AppSettings.API_ENDPOINT}/analysis/linearthreshold/public`,data)
       }
     }
 

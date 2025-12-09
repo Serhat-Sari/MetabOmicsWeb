@@ -21,59 +21,70 @@ class User(db.Model):
     affiliation = db.Column(db.String(255))
     password = db.Column(db.String(255))  # TODO: hash password
     analysis = db.relationship(
-        "Analysis", back_populates="user", lazy='dynamic')
+        "Analyses", back_populates="user", lazy='dynamic')
 
     def __repr__(self):
         return self.email
 
-class Method(db.Model):
-    __tablename__ = 'methods'
+class AnalysisMethod(db.Model):
+    __tablename__ = 'analysismethods'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String())
 
     def __repr__(self):
-        return '<Method %r>' % self.name
+        return '<AnalysisMethod %r>' % self.name
 
-class MetabolomicsData(db.Model):
-    __tablename__ = 'metabolomicsdata'
+class DiffusionMethod(db.Model):
+    __tablename__ = 'diffusionmethods'
     id = db.Column(db.Integer, primary_key=True)
-    metabolomics_data = db.Column(JSON)
+    name = db.Column(db.String())
+
+    def __repr__(self):
+        return '<DiffusionMethod %r>' % self.name
+
+class OmicsDatasets(db.Model):
+    __tablename__ = 'omicsdatasets'
+    id = db.Column(db.Integer, primary_key=True)
+    omics_type = db.Column(db.String())
+    omics_data = db.Column(JSON)
     owner_email = db.Column(db.String())
     owner_user_id = db.Column(db.Integer, nullable=True)
     is_public = db.Column(db.Boolean)
     disease_id = db.Column(db.Integer, db.ForeignKey('diseases.id'), nullable=True)
-    disease = db.relationship('Disease')
+    disease = db.relationship('Diseases')
 
     def __repr__(self):
-        return '<MetabolomicsData %r>' % self.owner_email
+        return '<OmicsDatasets %r>' % self.owner_email
 
-class Disease(db.Model):
+class Diseases(db.Model):
     __tablename__ = 'diseases'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String())
     parent_id = db.Column(db.Integer, db.ForeignKey('diseases.id'), nullable=True)
-    disease = db.relationship('Disease')
+    disease = db.relationship('Diseases')
     synonym = db.Column(db.String())
 
     def __repr__(self):
-        return '<Disease %r>' % self.name
+        return '<Diseases %r>' % self.name
 
-class Dataset(db.Model):
-    __tablename__ = 'datasets'
+class AnalysisMetadata(db.Model):
+    __tablename__ = 'analysismetadata'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String())
-    method_id = db.Column(db.Integer, db.ForeignKey('methods.id'))
-    method = db.relationship('Method')
+    analysis_method_id = db.Column(db.Integer, db.ForeignKey('analysismethods.id'))
+    analysis_method = db.relationship('AnalysisMethod')
+    diffusion_id = db.Column(db.Integer, db.ForeignKey('diffusionmethods.id'))
+    diffusion_method = db.relationship('DiffusionMethod')
     status = db.Column(db.Boolean)
     group = db.Column(db.String())
     disease_id = db.Column(db.Integer, db.ForeignKey('diseases.id'), nullable=True)
-    disease = db.relationship('Disease')
+    disease = db.relationship('Diseases')
 
     def __repr__(self):
         return '<Disease %r>' % self.name
 
-class Analysis(db.Model):
-    __tablename__ = 'analysis'
+class Analyses(db.Model):
+    __tablename__ = 'analyses'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255))
     # status = db.Column(db.Boolean)
@@ -85,18 +96,18 @@ class Analysis(db.Model):
     owner_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     user = db.relationship("User")
     owner_email = db.Column(db.String(255))
-    metabolomics_data_id = db.Column(db.Integer, db.ForeignKey('metabolomicsdata.id'))
-    metabolomics_data = db.relationship('MetabolomicsData')
+    omics_data_id = db.Column(db.Integer, db.ForeignKey('omicsdatasets.id'))
+    omics_data = db.relationship('OmicsDatasets')
     # method_id = db.Column(db.Integer, db.ForeignKey('methods.id'))
     # method = db.relationship('Method')
-    dataset_id = db.Column(db.Integer, db.ForeignKey('datasets.id'))
-    dataset = db.relationship('Dataset')
+    dataset_id = db.Column(db.Integer, db.ForeignKey('analysismetadata.id'))
+    dataset = db.relationship('AnalysisMetadata')
     label = db.Column(db.String())
 
 
     class AnalysisQuery(BaseQuery):
         def get_pathway_score(self, pathway):
-            return Analysis.results_pathway[0][pathway].astext.cast(Float)
+            return Analyses.results_pathway[0][pathway].astext.cast(Float)
 
         def filter_by_change(self, pathway, change):
             score = self.get_pathway_score(pathway)
@@ -136,7 +147,7 @@ class Analysis(db.Model):
             )
 
         def filter_by_authentication(self):
-            filter_type = Analysis.type.in_(['public', 'disease'])
+            filter_type = Analyses.type.in_(['public', 'disease'])
 
             try:
                 _jwt_required(app.config['JWT_DEFAULT_REALM'])
@@ -146,7 +157,7 @@ class Analysis(db.Model):
             if not current_identity:
                 return self.filter(filter_type)
             return self.filter(
-                or_(filter_type, Analysis.user.has(id=current_identity.id)))
+                or_(filter_type, Analyses.user.has(id=current_identity.id)))
 
     query_class = AnalysisQuery
 
@@ -170,17 +181,17 @@ class Analysis(db.Model):
 
     @staticmethod
     def get_multiple(ids):
-        return Analysis.query.filter(
-            Analysis.id.in_(ids)).filter_by_authentication()
+        return Analyses.query.filter(
+            Analyses.id.in_(ids)).filter_by_authentication()
 
     def __repr__(self):
-        return '<Analysis %r>' % self.name
+        return '<Analyses %r>' % self.name
 
 class DiseaseModel(db.Model):
     __tablename__ = 'diseasemodels'
     id = db.Column(db.Integer, primary_key=True)
     disease_id = db.Column(db.Integer, db.ForeignKey('diseases.id'))
-    disease = db.relationship('Disease')
+    disease = db.relationship('Diseases')
     fold_number = db.Column(db.Integer)
     f1_score = db.Column(db.Float())
     precision_score = db.Column(db.Float())

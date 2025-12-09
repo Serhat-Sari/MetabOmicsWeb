@@ -1,9 +1,9 @@
 import datetime
 import pickle
 
-from metabolitics3d.preprocessing import MetaboliticsPipeline
+from metabomics.preprocessing import MetaboliticsPipeline
 import celery
-from .models import db, Analysis, Dataset, MetabolomicsData, Disease, DiseaseModel
+from .models import db, Analyses, AnalysisMetadata, OmicsDatasets, Diseases, DiseaseModel
 from .services.mail_service import *
 import json
 import requests
@@ -29,9 +29,9 @@ import math
 
 
 @celery.task()
-def save_analysis(analysis_id, concentration_changes,registered=True,mail='none',study2='none'):
+def save_analysis(analysis_id, concentration_changes, gene_changes = None, registered=True,mail='none',study2='none'):
 
-    analysis = Analysis.query.get(analysis_id)
+    analysis = Analyses.query.get(analysis_id)
     analysis.start_time = datetime.datetime.now()
     db.session.commit()
     with open('../models/api_model.p', 'rb') as f:
@@ -44,13 +44,14 @@ def save_analysis(analysis_id, concentration_changes,registered=True,mail='none'
         'transport-pathway-elimination'
     ])
     # print ("-----------------------1")
-    results_reaction = reaction_scaler.transform([concentration_changes])
+
+    results_reaction = reaction_scaler.transform([concentration_changes], gene_changes)
     results_pathway = pathway_scaler.transform(results_reaction)
 
 
     analysis.results_reaction = analysis.clean_name_tag(results_reaction)
     analysis.results_pathway = analysis.clean_name_tag(results_pathway)
-    study = Dataset.query.get(analysis.dataset_id)
+    study = AnalysisMetadata.query.get(analysis.dataset_id)
     study.status = True
     analysis.end_time = datetime.datetime.now()
 
@@ -63,7 +64,7 @@ def save_analysis(analysis_id, concentration_changes,registered=True,mail='none'
 @celery.task()
 def save_dpm(analysis_id, concentration_changes):
 
-    analysis = Analysis.query.get(analysis_id)
+    analysis = Analyses.query.get(analysis_id)
     analysis.start_time = datetime.datetime.now()
     db.session.commit()
     
@@ -80,7 +81,7 @@ def save_dpm(analysis_id, concentration_changes):
 @celery.task()
 def save_pe(analysis_id, concentration_changes):
 
-    analysis = Analysis.query.get(analysis_id)
+    analysis = Analyses.query.get(analysis_id)
     analysis.start_time = datetime.datetime.now()
     db.session.commit()
     
@@ -127,24 +128,24 @@ def enhance_synonyms(metabolites):
 @celery.task(name='train_save_model')
 def train_save_model():
     print('Training and saving models...')
-    disease_ids = db.session.query(Dataset.disease_id).filter(Dataset.group != 'not_provided').filter(Dataset.method_id == 1).distinct()
+    disease_ids = db.session.query(AnalysisMetadata.disease_id).filter(AnalysisMetadata.group != 'not_provided').filter(AnalysisMetadata.method_id == 1).distinct()
     for disease_id, in disease_ids:
         seed = 41
         random.seed(seed)
         np.random.seed(seed)
         os.environ['PYTHONHASHSEED'] = str(seed)
-        disease_name = Disease.query.get(disease_id).name
-        disease_synonym = Disease.query.get(disease_id).synonym
-        dataset_ids = db.session.query(Dataset.id).filter(Dataset.disease_id == disease_id).filter(
-            Dataset.group != 'not_provided').filter(Dataset.method_id == 1).all()
-        results_reactions_labels = db.session.query(Analysis).filter(Analysis.type == 'public').filter(
-            Analysis.dataset_id.in_(dataset_ids)).filter(Analysis.results_reaction != None).with_entities(
-                Analysis.results_reaction, Analysis.label).all()
+        disease_name = AnalysisMetadata.query.get(disease_id).name
+        disease_synonym = AnalysisMetadata.query.get(disease_id).synonym
+        dataset_ids = db.session.query(AnalysisMetadata.id).filter(AnalysisMetadata.disease_id == disease_id).filter(
+            AnalysisMetadata.group != 'not_provided').filter(AnalysisMetadata.method_id == 1).all()
+        results_reactions_labels = db.session.query(Analyses).filter(Analyses.type == 'public').filter(
+            Analyses.dataset_id.in_(dataset_ids)).filter(Analyses.results_reaction != None).with_entities(
+                Analyses.results_reaction, Analyses.label).all()
         results_reactions = [value[0][0] for value in results_reactions_labels]
         if len(results_reactions) < 12:
             continue
         labels = [value[1] for value in results_reactions_labels]
-        groups = db.session.query(Dataset.group).filter(Dataset.id.in_(dataset_ids)).all()
+        groups = db.session.query(AnalysisMetadata.group).filter(AnalysisMetadata.id.in_(dataset_ids)).all()
         def is_healthy(label):
             for group, in groups:
                 if group.lower() + ' label avg' == label or group == label:
